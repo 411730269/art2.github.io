@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artistic Drag and Drop Quiz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f4;
+      background-image: url('bg.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .quiz-container {
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 80%;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      width: 100%;
+      margin: 10px 0;
+    }
+
+    .draggable, .target {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #e0e0e0;
+      cursor: pointer;
+      text-align: center;
+      margin: 10px;
+      font-size: 18px;
+      min-width: 120px;
+    }
+
+    .draggable {
+      background-color: #834040;
+      color: #ffffff;
+    }
+
+    .target {
+      min-height: 200px;
+      min-width: 200px;
+      border: 2px dashed #b16f30;
+      background-color: #fff4b7;
+    }
+
+    .highlight {
+      background-color: #ffcc80 !important;
+    }
+
+    #score, #final-score {
+      margin-top: 30px;
+      font-weight: bold;
+    }
+
+    button {
+      margin-top: 30px;
+      padding: 10px 30px;
+      border: 2px solid #d7a44d;
+      background-color: #fff4b7;
+      color: rgb(98, 18, 18);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 20px;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #b4944e;
+      border-color: #b4944e;
+      color: rgb(255, 255, 255);
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <h1 id="question-title">請將文藝復興的代表畫家拖曳進框框中</h1>
+    <div class="row targets">
+      <div class="target" data-correct="1"></div>
+    </div>
+    <div class="row options" id="options">
+      <div class="draggable" draggable="true" data-answer="1">米開朗基羅</div>
+      <div class="draggable" draggable="true" data-answer="2">愛德華·馬奈</div>
+      <div class="draggable" draggable="true" data-answer="3">拉斐爾</div>
+    </div>
+    <button id="submit-button" onclick="checkAnswers()">確定答案</button>
+    <div id="score"></div>
+    <button id="next-button" style="display:none;" onclick="nextQuestion()">下一題</button>
+    <div id="final-score"></div>
+  </div>
+  <script>
+    const questions = [
+      {
+        title: "請將文藝復興的代表畫家拖曳進框框中",
+        options: [
+          { name: "米開朗基羅", correct: true },
+          { name: "愛德華·馬奈", correct: false },
+          { name: "拉斐爾", correct: true }
+        ]
+      },
+      {
+        title: "請將印象派的代表畫家拖曳進框框中",
+        options: [
+          { name: "莫內", correct: true },
+          { name: "愛德華·馬奈", correct: true },
+          { name: "拉斐爾", correct: false }
+        ]
+      },
+      {
+        title: "請將抽象藝術的代表畫家拖曳進框框中",
+        options: [
+          { name: "蒙德里安", correct: true },
+          { name: "愛德華·馬奈", correct: false },
+          { name: "康定斯基", correct: true }
+        ]
+      },
+      {
+        title: "請將立體派的代表畫家拖曳進框框中",
+        options: [
+          { name: "康定斯基", correct: false },
+          { name: "巴勃羅·畢卡索", correct: true },
+          { name: "喬治·布拉克", correct: true }
+        ]
+      }
+    ];
+
+    let currentQuestion = 0;
+    let totalScore = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadQuestion();
+    });
+
+    function setupDragAndDrop() {
+      const draggables = document.querySelectorAll('.draggable');
+      const targets = document.querySelectorAll('.target');
+
+      draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', dragStart);
+        draggable.addEventListener('dragend', dragEnd);
+      });
+
+      targets.forEach(target => {
+        target.addEventListener('dragover', dragOver);
+        target.addEventListener('dragleave', dragLeave);
+        target.addEventListener('drop', drop);
+      });
+    }
+
+    function loadQuestion() {
+      const question = questions[currentQuestion];
+      document.getElementById('question-title').innerText = question.title;
+
+      const optionsContainer = document.getElementById('options');
+      optionsContainer.innerHTML = '';
+
+      question.options.forEach((option, index) => {
+        const optionDiv = document.createElement('div');
+        optionDiv.classList.add('draggable');
+        optionDiv.draggable = true;
+        optionDiv.dataset.answer = option.correct ? '1' : '0';
+        optionDiv.dataset.index = index;
+        optionDiv.innerText = option.name;
+        optionsContainer.appendChild(optionDiv);
+      });
+
+      const targetContainer = document.querySelector('.row.targets');
+      targetContainer.innerHTML = '<div class="target" data-correct="1"></div>';
+
+      setupDragAndDrop();
+    }
+
+    function dragStart(e) {
+      e.dataTransfer.setData('text/plain', e.target.dataset.index);
+      setTimeout(() => {
+        e.target.style.opacity = '0.6';
+      }, 0);
+    }
+
+    // 拖動結束時觸發
+    function dragEnd(e) {
+      e.target.style.opacity = '1'; // 恢復透明度
+    }
+
+    // 拖放元素在目標區域上時觸發
+    function dragOver(e) {
+      e.preventDefault(); 
+      const target = e.target.closest('.target');
+      if (target && target.childElementCount < 3) {
+        target.classList.add('highlight');
+      }
+    }
+
+    function dragLeave(e) {
+      e.preventDefault();
+      e.target.classList.remove('highlight');
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      const target = e.target.closest('.target');
+      const index = e.dataTransfer.getData('text/plain');
+      const draggable = document.querySelector(`.draggable[data-index="${index}"]`);
+
+      if (target && target.childElementCount < 3) {
+        const correctAnswer = draggable.dataset.answer === '1'; // 判斷是否是正確答案
+        if (!correctAnswer) {
+          totalScore--; 
+        }
+        target.appendChild(draggable);
+      } else if (!target) {
+        const optionsContainer = document.getElementById('options');
+        optionsContainer.appendChild(draggable);
+      }
+      draggable.style.opacity = '1';
+      target.classList.remove('highlight');
+    }
+
+    function checkAnswers() {
+      let totalScoreForThisRound = 0;
+
+      const targets = document.querySelectorAll('.target');
+      targets.forEach(target => {
+        let correctAnswerCount = 0;
+        let incorrectAnswerCount = 0;
+
+        const droppedItems = target.querySelectorAll('.draggable');
+        droppedItems.forEach(item => {
+          if (item.dataset.answer === '1') {
+            correctAnswerCount++;
+          } else {
+            incorrectAnswerCount++;
+          }
+        });
+
+        if (incorrectAnswerCount > 0 || correctAnswerCount === 0) {
+          totalScoreForThisRound += 0;
+        } else if (correctAnswerCount === 1) {
+          totalScoreForThisRound += 12.5;
+        } else if (correctAnswerCount === 2) {
+          totalScoreForThisRound += 25;
+        }
+      });
+
+      totalScore += totalScoreForThisRound;
+      document.getElementById('score').innerText = `本輪得分: ${totalScoreForThisRound} / 25`;
+      document.getElementById('submit-button').style.display = 'none';
+      document.getElementById('next-button').style.display = 'block';
+
+      if (currentQuestion === questions.length - 1) {
+        setTimeout(showFinalScore, 1000);
+      }
+    }
+
+    function showFinalScore() {
+      const totalPossibleScore = questions.length * 25;
+      let message = `總分: ${totalScore} / ${totalPossibleScore}`;
+      if ((totalScore / totalPossibleScore) * 100 >= 60) {
+        message += '\n恭喜! 通關成功!';
+      } else {
+        message += '\n抱歉, 未能成功通關.';
+      }
+      alert(message);
+    }
+
+    function nextQuestion() {
+      currentQuestion++;
+      if (currentQuestion < questions.length) {
+        loadQuestion();
+        document.getElementById('submit-button').style.display = 'block';
+        document.getElementById('next-button').style.display = 'none';
+        document.getElementById('score').innerText = '';
+      } else {
+        showFinalScore();
+      }
+    }
+  </script>
+</body>
+</html>
